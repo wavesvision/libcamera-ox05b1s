@@ -66,7 +66,13 @@ sudo meson install -C build
 
 The GStreamer plugin built here exposes `draft-nir-mode`, `draft-nir-red`,
 `draft-nir-green` and `draft-nir-blue`; the distribution `libcamerasrc` plugin
-does not.
+does not. Make sure the `/usr/local` plugin is used:
+
+```sh
+export LD_LIBRARY_PATH=/usr/local/lib/aarch64-linux-gnu
+export GST_PLUGIN_PATH=/usr/local/lib/aarch64-linux-gnu/gstreamer-1.0
+gst-inspect-1.0 libcamerasrc
+```
 
 ## 2. Start and stop a stream
 
