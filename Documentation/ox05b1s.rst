@@ -69,7 +69,7 @@ The following draft controls are advertised for RGB-IR sensors:
     is taken from the ``pipeline_handler.nir.mode`` value in the tuning file and
     is ``NirModeDay``.
 
-    The sensor's RGB-IR samples are always converted to a standard BGGR Bayer
+    The sensor's RGB-IR samples are always converted to a standard RGGB Bayer
     frame before the ISP. ``NirModeOff`` disables only the infrared
     compensation, not the RGB-IR to Bayer conversion.
 
@@ -135,7 +135,8 @@ The raw stream contains the sensor's native, compressed RGB-IR data and has no
 NIR processing. The NIR controls in the script are ignored for raw streams; the
 script is used only for the frame duration limits.
 
-Autofocus can be exercised with ``utils/ox05b1s/af-auto.yaml`` and
+Autofocus can be exercised with ``utils/ox05b1s/af-auto-day.yaml`` (or
+``af-auto-night.yaml`` for low light) and
 ``--metadata``; the metadata reports ``AfState``, ``FocusFoM`` and
 ``LensPosition``.
 
@@ -151,18 +152,21 @@ the CFE output buffer.
 Known limitations
 -----------------
 
-* The conversion assumes the sensor's native BGGR order. Horizontal, vertical
+* The conversion assumes the sensor's native RGGB order. Horizontal, vertical
   and transposed transforms are rejected for RGB-IR sensors. The current
   driver programs ISP register ``0x5000`` with ``0x7e`` (the NXP reference
-  uses ``0x6e``); if the module's colour filter phase is found to differ, the
-  conversion and the reported Bayer order must be revisited.
+  uses ``0x6e``); the conversion was validated with this setting.
 * Raw and processed streams can be requested together, but NIR processing is
   disabled and the processed output receives the unconverted RGB-IR data.
+* The sensor black level is 2048. Using the imx708 value of 4096 crushed the
+  low-level blue channel and produced a strong green cast.
 * The unit cell size (2200 nm), the NIR coefficients and the ``rpi.lux``,
-  ``rpi.awb``, ``rpi.ccm`` and ``rpi.af`` calibration data are provisional and
-  must be replaced with measurements from the final module. Lens shading
-  correction (``rpi.alsc``) is intentionally omitted until tables for the
-  final lens are available.
+  ``rpi.awb`` and ``rpi.af`` calibration data are provisional and must be
+  replaced with measurements from the final module. The imx708 colour
+  correction matrix was removed because it was not calibrated for this
+  sensor and suppressed blue; colour correction (``rpi.ccm``) and lens
+  shading correction (``rpi.alsc``) are omitted until tables for the final
+  module are available.
 * The AF map in ``rpi.af`` assumes a linear VCM position range of 0 to 1023.
   The DW9714 driver moves the lens in steps of 16 with approximately 1 ms per
   step, so the AF speed parameters may need tuning for the final lens.

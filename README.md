@@ -33,7 +33,10 @@ Install the build dependencies:
 ```sh
 sudo apt install meson ninja-build pkg-config python3-ply \
     libgnutls28-dev libssl-dev libevent-dev libudev-dev \
-    libsdl2-dev libdrm-dev
+    libsdl2-dev libdrm-dev \
+    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+    gstreamer1.0-tools gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good
 ```
 
 The first configure downloads the `libpisp` and `libyaml` wrap dependencies, so
@@ -46,11 +49,15 @@ meson setup build . \
     -Dpipelines=rpi/pisp \
     -Dipas=rpi/pisp \
     -Dbuildtype=release \
-    -Dgstreamer=disabled \
+    -Dgstreamer=enabled \
     -Dpycamera=disabled
 ninja -C build
 sudo meson install -C build
 ```
+
+The GStreamer plugin built here exposes `draft-nir-mode`, `draft-nir-red`,
+`draft-nir-green` and `draft-nir-blue`; the distribution `libcamerasrc` plugin
+does not.
 
 ## 2. Start and stop a stream
 
@@ -62,7 +69,7 @@ cam --list-properties
 ```
 
 `cam --list-properties` should report `Model = ox05b1s`,
-`PixelArraySize = 2592x1944` and `ColorFilterArrangement = BGGR`.
+`PixelArraySize = 2592x1944` and `ColorFilterArrangement = RGGB`.
 
 Start streaming capture:
 
@@ -127,14 +134,16 @@ PPM writer; the default still format is YUV420.
 
 ## 4. Autofocus
 
-The `af-auto.yaml` script enables continuous autofocus with the daylight NIR
-profile:
+The `af-auto-day.yaml` script enables continuous autofocus with the daylight
+NIR profile:
 
 ```sh
 cam -c 1 --capture=100 --metadata \
-    --script=utils/ox05b1s/af-auto.yaml \
+    --script=utils/ox05b1s/af-auto-day.yaml \
     --stream=width=2592,height=1944
 ```
+
+For low light, use `af-auto-night.yaml` in the same way.
 
 The metadata prints `AfState`, `FocusFoM` and `LensPosition`. For a continuous
 stream, use `--capture` without a count and stop with `Ctrl-C`.
@@ -235,5 +244,7 @@ To disable NIR compensation (the RGB-IR to Bayer conversion still runs), use
   NIR processing.
 - Horizontal, vertical and transposed transforms are not supported on RGB-IR
   sensors.
-- The unit cell size, NIR coefficients, LUX/AWB/CCM and AF calibration in the
-  tuning file are provisional. See `Documentation/ox05b1s.rst` for details.
+- The unit cell size, NIR coefficients, LUX/AWB and AF calibration in the
+  tuning file are provisional. Colour correction and lens shading are omitted
+  until calibrated for this module. See `Documentation/ox05b1s.rst` for
+  details.

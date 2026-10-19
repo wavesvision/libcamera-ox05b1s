@@ -14,7 +14,7 @@ namespace libcamera {
 namespace RPi {
 
 /*
- * Convert an unpacked 16-bit BGGR RGB-IR frame to a standard BGGR Bayer frame
+ * Convert an unpacked 16-bit RGGB RGB-IR frame to a standard RGGB Bayer frame
  * in place. The frame must have no horizontal or vertical flips applied. The
  * \a bitDepth parameter is the native sensor bit depth (the samples are
  * assumed to be left-aligned in the 16-bit words).

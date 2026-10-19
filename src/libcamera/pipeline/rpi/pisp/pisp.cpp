@@ -1210,7 +1210,7 @@ PiSPCameraData::platformValidate(RPi::RPiCameraConfiguration *rpiConfig) const
 	}
 
 	/*
-	 * The RGB-IR to Bayer conversion assumes the sensor's native BGGR
+	 * The RGB-IR to Bayer conversion assumes the sensor's native RGGB
 	 * order. Flipping would change the Bayer order and is not supported
 	 * for this sensor in v1.
 	 */
