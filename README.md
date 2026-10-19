@@ -40,7 +40,7 @@ available.
 Install the build dependencies:
 
 ```sh
-sudo apt install meson ninja-build pkg-config python3-ply \
+sudo apt install build-essential git meson ninja-build pkg-config python3-ply \
     libgnutls28-dev libssl-dev libevent-dev libudev-dev \
     libsdl2-dev libdrm-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
