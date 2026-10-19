@@ -85,6 +85,7 @@ gst_libcamera_pad_query(GstPad *pad, GstObject *parent, GstQuery *query)
 static void
 gst_libcamera_pad_init(GstLibcameraPad *self)
 {
+	self->role = StreamRole::VideoRecording;
 	self->latency = GST_CLOCK_TIME_NONE;
 	GST_PAD_QUERYFUNC(self) = gst_libcamera_pad_query;
 }
