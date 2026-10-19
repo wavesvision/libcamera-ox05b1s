@@ -25,7 +25,7 @@ exposed_controls = [
     'Brightness', 'Contrast', 'AwbEnable', 'AwbMode', 'ColourGains',
     'Saturation', 'Sharpness', 'ColourCorrectionMatrix', 'ScalerCrop',
     'DigitalGain', 'AfMode', 'AfRange', 'AfSpeed', 'AfMetering', 'AfWindows',
-    'LensPosition', 'Gamma',
+    'LensPosition', 'Gamma', 'NirMode', 'NirRed', 'NirGreen', 'NirBlue',
 ]
 
 
