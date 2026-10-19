@@ -83,6 +83,7 @@ public:
 	testPatternModes() const = 0;
 	virtual int setTestPatternMode(controls::draft::TestPatternModeEnum mode) = 0;
 	virtual const CameraSensorProperties::SensorDelays &sensorDelays() = 0;
+	virtual bool isRgbIr() const = 0;
 };
 
 class CameraSensorFactoryBase

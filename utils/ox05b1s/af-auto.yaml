@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# Continuous autofocus with the DW9714 VCM and the daylight NIR profile.
+# Runs at 60 fps nominal, falling back to approximately 15 fps in low light.
+
+properties:
+  - loop: 60
+
+frames:
+  - 0:
+      AfMode: 2
+      AfRange: 0
+      AfSpeed: 0
+      NirMode: 1
+      NirRed: 7
+      NirGreen: 4
+      NirBlue: 3
+      FrameDurationLimits: [16666, 66666]

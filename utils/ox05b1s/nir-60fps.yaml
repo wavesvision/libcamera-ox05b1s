@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# OX05B1S daylight NIR processing at 60 fps nominal, with a low-light
+# fallback to approximately 15 fps.
+
+properties:
+  - loop: 60
+
+frames:
+  - 0:
+      NirMode: 1
+      NirRed: 7
+      NirGreen: 4
+      NirBlue: 3
+      FrameDurationLimits: [16666, 66666]

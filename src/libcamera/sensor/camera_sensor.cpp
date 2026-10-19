@@ -414,6 +414,17 @@ int CameraSensor::setEmbeddedDataEnabled(bool enable)
  */
 
 /**
+ * \fn CameraSensor::isRgbIr()
+ * \brief Check if the sensor uses an RGB-IR colour filter array
+ *
+ * RGB-IR sensors interleave infrared sensitive pixels with red, green and blue
+ * pixels. Their output must be converted to a standard Bayer pattern before it
+ * can be processed by a hardware ISP.
+ *
+ * \return True if the sensor is an RGB-IR sensor, false otherwise
+ */
+
+/**
  * \class CameraSensorFactoryBase
  * \brief Base class for camera sensor factories
  *

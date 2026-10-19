@@ -17,6 +17,7 @@ struct SensorConfig {
 
 struct InitParams {
 	bool lensPresent;
+	bool isRgbIr;
 	libcamera.IPACameraSensorInfo sensorInfo;
 	float controllerMinFrameDurationUs;
 	/* PISP specific */
@@ -24,9 +25,21 @@ struct InitParams {
 	libcamera.SharedFD be;
 };
 
+/* Default NIR processing configuration for RGB-IR sensors. */
+struct NirConfig {
+	uint8 mode;
+	uint8 dayRed;
+	uint8 dayGreen;
+	uint8 dayBlue;
+	uint8 nightRed;
+	uint8 nightGreen;
+	uint8 nightBlue;
+};
+
 struct InitResult {
 	SensorConfig sensorConfig;
 	libcamera.ControlInfoMap controlInfo;
+	NirConfig nirConfig;
 };
 
 struct BufferIds {

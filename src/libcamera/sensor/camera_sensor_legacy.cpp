@@ -98,6 +98,7 @@ public:
 	testPatternModes() const override { return testPatternModes_; }
 	int setTestPatternMode(controls::draft::TestPatternModeEnum mode) override;
 	const CameraSensorProperties::SensorDelays &sensorDelays() override;
+	bool isRgbIr() const override;
 
 protected:
 	std::string logPrefix() const override;
@@ -507,6 +508,11 @@ const CameraSensorProperties::SensorDelays &CameraSensorLegacy::sensorDelays()
 	}
 
 	return staticProps_->sensorDelays;
+}
+
+bool CameraSensorLegacy::isRgbIr() const
+{
+	return staticProps_ && staticProps_->isRgbIr;
 }
 
 void CameraSensorLegacy::initTestPatternModes()

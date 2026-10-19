@@ -294,4 +294,75 @@ controls:
         Currently identical to ANDROID_STATISTICS_FACE_IDS.
       size: [n]
 
+  - NirMode:
+      type: int32_t
+      direction: inout
+      description: |
+        Selects the near-infrared processing mode for sensors with an RGB-IR
+        colour filter array.
+
+        The sensor's RGB-IR output is always converted to a standard Bayer
+        pattern before it reaches the ISP. The NIR mode only controls how the
+        infrared component is treated during that conversion:
+
+        - NirModeOff disables infrared compensation. The RGB-IR to Bayer
+          conversion is still performed, so this mode does not produce the
+          sensor's native RGB-IR samples.
+        - NirModeDay subtracts the estimated infrared component from the red,
+          green and blue channels. This is intended for use with an IR-cut
+          filter or in daylight.
+        - NirModeNight adds the estimated infrared component to the red, green
+          and blue channels. This retains the additional near-infrared
+          sensitivity in low light.
+
+        The magnitude of the adjustment is controlled by the NirRed, NirGreen
+        and NirBlue coefficients. Applications that request a raw stream
+        receive the sensor's native RGB-IR data and NIR processing is
+        disabled.
+
+        \sa NirRed
+        \sa NirGreen
+        \sa NirBlue
+
+      enum:
+        - name: NirModeOff
+          value: 0
+          description: No infrared compensation is applied.
+        - name: NirModeDay
+          value: 1
+          description: Infrared is subtracted from the colour channels.
+        - name: NirModeNight
+          value: 2
+          description: Infrared is added to the colour channels.
+
+  - NirRed:
+      type: int32_t
+      direction: inout
+      description: |
+        Red channel infrared compensation coefficient for RGB-IR sensors. The
+        estimated infrared component is scaled by this value. Valid values
+        range from 0 to 10.
+
+        \sa NirMode
+
+  - NirGreen:
+      type: int32_t
+      direction: inout
+      description: |
+        Green channel infrared compensation coefficient for RGB-IR sensors.
+        The estimated infrared component is scaled by this value. Valid values
+        range from 0 to 10.
+
+        \sa NirMode
+
+  - NirBlue:
+      type: int32_t
+      direction: inout
+      description: |
+        Blue channel infrared compensation coefficient for RGB-IR sensors. The
+        estimated infrared component is scaled by this value. Valid values
+        range from 0 to 10.
+
+        \sa NirMode
+
 ...

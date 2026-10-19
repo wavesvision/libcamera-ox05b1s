@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# OX05B1S low-light NIR processing. The infrared component is added to the
+# red, green and blue channels. Runs at 60 fps nominal, falling back to
+# approximately 15 fps in low light.
+
+properties:
+  - loop: 60
+
+frames:
+  - 0:
+      NirMode: 2
+      NirRed: 6
+      NirGreen: 3
+      NirBlue: 0
+      FrameDurationLimits: [16666, 66666]

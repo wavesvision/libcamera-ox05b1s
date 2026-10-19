@@ -7,7 +7,9 @@
 
 #include "pipeline_base.h"
 
+#include <algorithm>
 #include <chrono>
+#include <iterator>
 
 #include <linux/media-bus-format.h>
 #include <linux/videodev2.h>
@@ -653,8 +655,10 @@ int PipelineHandlerBase::start(Camera *camera, const ControlList *controls)
 	int ret;
 
 	/* Check if a ScalerCrop control was specified. */
-	if (controls)
+	if (controls) {
 		data->applyScalerCrop(*controls);
+		data->storeNirParams(0, *controls);
+	}
 
 	/* Start the IPA. */
 	ipa::RPi::StartResult result;
@@ -754,6 +758,8 @@ int PipelineHandlerBase::queueRequestDevice(Camera *camera, Request *request)
 
 	LOG(RPI, Debug) << "queueRequestDevice: New request sequence: "
 			<< request->sequence();
+
+	data->storeNirParams(request->sequence(), request->controls());
 
 	/* Push all buffers supplied in the Request to the respective streams. */
 	for (auto stream : data->streams_) {
@@ -1186,13 +1192,29 @@ int CameraData::loadIPA(ipa::RPi::InitResult *result)
 	}
 
 	params.lensPresent = !!sensor_->focusLens();
+	params.isRgbIr = sensor_->isRgbIr();
 	params.controllerMinFrameDurationUs = config_.controllerMinFrameDurationUs;
 
 	ret = platformInitIpa(params);
 	if (ret)
 		return ret;
 
-	return ipa_->init(settings, params, result);
+	ret = ipa_->init(settings, params, result);
+	if (ret)
+		return ret;
+
+	if (sensor_->isRgbIr()) {
+		const ipa::RPi::NirConfig &nir = result->nirConfig;
+		if (nir.mode <= static_cast<uint8_t>(NirMode::Night)) {
+			nirDefaults_ = {
+				static_cast<NirMode>(nir.mode),
+				{ nir.dayRed, nir.dayGreen, nir.dayBlue },
+				{ nir.nightRed, nir.nightGreen, nir.nightBlue },
+			};
+		}
+	}
+
+	return 0;
 }
 
 int CameraData::configureIPA(const CameraConfiguration *config, ipa::RPi::ConfigResult *result)
@@ -1278,6 +1300,67 @@ void CameraData::setLensControls(const ControlList &controls)
 		ControlValue const &focusValue = controls.get(V4L2_CID_FOCUS_ABSOLUTE);
 		lens->setFocusPosition(focusValue.get<int32_t>());
 	}
+}
+
+bool CameraData::isRgbIr() const
+{
+	return sensor_ && sensor_->isRgbIr();
+}
+
+void CameraData::storeNirParams(uint32_t sequence, const ControlList &controls)
+{
+	if (!isRgbIr())
+		return;
+
+	auto mode = controls.get(controls::draft::NirMode);
+	auto red = controls.get(controls::draft::NirRed);
+	auto green = controls.get(controls::draft::NirGreen);
+	auto blue = controls.get(controls::draft::NirBlue);
+
+	if (!mode && !red && !green && !blue)
+		return;
+
+	/*
+	 * Start from the most recent parameters so that applications can set
+	 * the mode once and only update individual coefficients afterwards.
+	 */
+	auto it = nirParams_.upper_bound(sequence);
+	NirParams params = it == nirParams_.begin()
+			 ? nirParams(nirDefaults_.mode, nirDefaults_)
+			 : std::prev(it)->second;
+
+	if (mode) {
+		NirMode newMode = static_cast<NirMode>(std::clamp<int32_t>(*mode, 0, 2));
+		if (newMode != params.mode)
+			params = nirParams(newMode, nirDefaults_);
+	}
+
+	auto setCoefficient = [](std::optional<int32_t> value, uint8_t &coefficient) {
+		if (value)
+			coefficient = std::clamp<int32_t>(*value, 0, 10);
+	};
+
+	setCoefficient(red, params.red);
+	setCoefficient(green, params.green);
+	setCoefficient(blue, params.blue);
+
+	nirParams_[sequence] = params;
+}
+
+NirParams CameraData::getNirParams(uint32_t sequence)
+{
+	if (!isRgbIr())
+		return nirParams(NirMode::Off, nirDefaults_);
+
+	auto it = nirParams_.upper_bound(sequence);
+	if (it == nirParams_.begin())
+		return nirParams(nirDefaults_.mode, nirDefaults_);
+
+	/* Drop parameters that can no longer apply to a future frame. */
+	--it;
+	nirParams_.erase(nirParams_.begin(), it);
+
+	return it->second;
 }
 
 void CameraData::setSensorControls(ControlList &controls)

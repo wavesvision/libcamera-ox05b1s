@@ -5,6 +5,7 @@
  * ISP controller
  */
 
+#include <algorithm>
 #include <assert.h>
 
 #include <libcamera/base/file.h>
@@ -108,6 +109,50 @@ int Controller::read(char const *filename)
 
 	double version = (*root)["version"].get<double>(1.0);
 	target_ = (*root)["target"].get<std::string>("bcm2835");
+
+	/*
+	 * Parse the optional RGB-IR near-infrared defaults. These are consumed
+	 * by the pipeline handler, which performs the RGB-IR to Bayer
+	 * conversion, and are also used as the default values of the NIR
+	 * controls advertised by the IPA.
+	 */
+	if (root->contains("pipeline_handler")) {
+		const ValueNode &phConfig = (*root)["pipeline_handler"];
+		if (phConfig.contains("nir")) {
+			const ValueNode &nir = phConfig["nir"];
+			std::string mode = nir["mode"].get<std::string>("day");
+
+			if (mode == "off")
+				nirConfig_.mode = NirConfig::Mode::Off;
+			else if (mode == "day")
+				nirConfig_.mode = NirConfig::Mode::Day;
+			else if (mode == "night")
+				nirConfig_.mode = NirConfig::Mode::Night;
+			else
+				LOG(RPiController, Warning)
+					<< "Unknown NIR mode '" << mode
+					<< "', using day mode";
+
+			auto getCoefficient = [](const ValueNode &node,
+						 const char *name, uint8_t def) {
+				int value = node[name].get<int>(def);
+				return static_cast<uint8_t>(std::clamp(value, 0, 10));
+			};
+
+			if (nir.contains("day")) {
+				const ValueNode &day = nir["day"];
+				nirConfig_.dayRed = getCoefficient(day, "red", 7);
+				nirConfig_.dayGreen = getCoefficient(day, "green", 4);
+				nirConfig_.dayBlue = getCoefficient(day, "blue", 3);
+			}
+			if (nir.contains("night")) {
+				const ValueNode &night = nir["night"];
+				nirConfig_.nightRed = getCoefficient(night, "red", 6);
+				nirConfig_.nightGreen = getCoefficient(night, "green", 3);
+				nirConfig_.nightBlue = getCoefficient(night, "blue", 0);
+			}
+		}
+	}
 
 	if (version < 2.0) {
 		LOG(RPiController, Warning)
@@ -246,4 +291,9 @@ const Controller::HardwareConfig &Controller::getHardwareConfig() const
 	 */
 	ASSERT(cfg != hardwareConfigMap().end());
 	return cfg->second;
+}
+
+const NirConfig &Controller::getNirConfig() const
+{
+	return nirConfig_;
 }

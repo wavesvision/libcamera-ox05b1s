@@ -32,6 +32,7 @@
 #include <libcamera/ipa/raspberrypi_ipa_proxy.h>
 
 #include "delayed_controls.h"
+#include "nir.h"
 #include "rpi_stream.h"
 
 using namespace std::chrono_literals;
@@ -80,6 +81,10 @@ public:
 	void setDelayedControls(const ControlList &controls, uint32_t delayContext);
 	void setLensControls(const ControlList &controls);
 	void setSensorControls(ControlList &controls);
+
+	bool isRgbIr() const;
+	void storeNirParams(uint32_t sequence, const ControlList &controls);
+	NirParams getNirParams(uint32_t sequence);
 
 	Rectangle scaleIspCrop(const Rectangle &ispCrop) const;
 	void applyScalerCrop(const ControlList &controls);
@@ -185,6 +190,14 @@ public:
 		ControlList controls;
 	};
 	std::queue<ImmediateControlsEntry> immediateControls_;
+
+	/*
+	 * Per-request NIR parameters for RGB-IR sensors, keyed by the request
+	 * sequence number. The sensor's frame sequence is used to look the
+	 * parameters up when the CFE buffer is dequeued.
+	 */
+	std::map<uint32_t, NirParams> nirParams_;
+	NirDefaults nirDefaults_{ NirMode::Day, { 7, 4, 3 }, { 6, 3, 0 } };
 
 protected:
 	void fillRequestMetadata(const ControlList &bufferControls,

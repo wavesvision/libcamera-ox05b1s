@@ -109,6 +109,7 @@ private:
 
 	bool lensPresent_;
 	bool monoSensor_;
+	bool isRgbIr_;
 
 	std::array<RPiController::Metadata, numMetadataContexts> rpiMetadata_;
 

@@ -2,6 +2,7 @@
 
 libcamera_internal_sources += files([
     'pisp.cpp',
+    'rgbir.cpp',
 ])
 
 librt = cc.find_library('rt', required : true)

@@ -12,6 +12,7 @@
  * convenient manner.
  */
 
+#include <cstdint>
 #include <vector>
 #include <string>
 
@@ -64,6 +65,26 @@ class Algorithm;
 typedef std::unique_ptr<Algorithm> AlgorithmPtr;
 
 /*
+ * Default near-infrared processing configuration for RGB-IR sensors. This is
+ * read from the "pipeline_handler.nir" section of the sensor tuning file.
+ */
+struct NirConfig {
+	enum class Mode {
+		Off,
+		Day,
+		Night,
+	};
+
+	Mode mode = Mode::Day;
+	uint8_t dayRed = 7;
+	uint8_t dayGreen = 4;
+	uint8_t dayBlue = 3;
+	uint8_t nightRed = 6;
+	uint8_t nightGreen = 3;
+	uint8_t nightBlue = 0;
+};
+
+/*
  * The Controller holds a pointer to some global_metadata, which is how
  * different controllers and control algorithms within them can exchange
  * information. The Prepare function returns a pointer to metadata for this
@@ -98,6 +119,7 @@ public:
 	Algorithm *getAlgorithm(std::string const &name) const;
 	const std::string &getTarget() const;
 	const HardwareConfig &getHardwareConfig() const;
+	const NirConfig &getNirConfig() const;
 
 protected:
 	int createAlgorithm(const std::string &name, const libcamera::ValueNode &params);
@@ -108,6 +130,7 @@ protected:
 
 private:
 	std::string target_;
+	NirConfig nirConfig_;
 };
 
 } /* namespace RPiController */

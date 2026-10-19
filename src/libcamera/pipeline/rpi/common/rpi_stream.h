@@ -92,6 +92,11 @@ public:
 		 * 16-bit unpacking.
 		 */
 		Needs14bitUnpack = (1 << 6),
+		/*
+		 * Indicates that the input stream needs a software RGB-IR to
+		 * standard Bayer conversion before ISP processing.
+		 */
+		NeedsRgbIrConvert = (1 << 7),
 	};
 
 	using StreamFlags = Flags<StreamFlag>;

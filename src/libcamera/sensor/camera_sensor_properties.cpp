@@ -47,6 +47,13 @@ LOG_DEFINE_CATEGORY(CameraSensorProperties)
  *
  * This structure may be defined as empty if the actual sensor delays are not
  * available or have not been measured.
+ *
+ * \var CameraSensorProperties::isRgbIr
+ * \brief Whether the sensor uses an RGB-IR colour filter array
+ *
+ * RGB-IR sensors interleave infrared sensitive pixels with the red, green and
+ * blue pixels. Their output must be converted to a standard Bayer pattern
+ * before it can be processed by a hardware ISP.
  */
 
 /**
@@ -566,6 +573,31 @@ const CameraSensorProperties *CameraSensorProperties::get(const std::string &sen
 				{ controls::draft::TestPatternModeColorBars, 1 },
 			},
 			.sensorDelays = { },
+		} },
+		{ "ox05b1s", {
+			/*
+			 * \todo The unit cell size is provisional and must be
+			 * confirmed from the sensor datasheet.
+			 */
+			.unitCellSize = { 2200, 2200 },
+			.testPatternModes = {
+				{ controls::draft::TestPatternModeOff, 0 },
+				{ controls::draft::TestPatternModeColorBars, 1 },
+				{ controls::draft::TestPatternModeSolidColor, 7 },
+				{ controls::draft::TestPatternModeCustom1, 5 },
+				/*
+				 * The sensor also provides colour bars #2-#4 and
+				 * green/blue screens, which have no matching
+				 * libcamera test pattern mode.
+				 */
+			},
+			.sensorDelays = {
+				.exposureDelay = 2,
+				.gainDelay = 2,
+				.vblankDelay = 2,
+				.hblankDelay = 2
+			},
+			.isRgbIr = true,
 		} },
 		{ "vd55g1", {
 			.unitCellSize = { 2160, 2160 },

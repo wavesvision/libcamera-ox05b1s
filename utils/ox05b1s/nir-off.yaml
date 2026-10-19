@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# OX05B1S without infrared compensation. The RGB-IR to Bayer conversion is
+# still performed. Runs at 60 fps nominal, falling back to approximately
+# 15 fps in low light.
+
+properties:
+  - loop: 60
+
+frames:
+  - 0:
+      NirMode: 0
+      FrameDurationLimits: [16666, 66666]

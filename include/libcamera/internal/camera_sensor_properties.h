@@ -29,6 +29,12 @@ struct CameraSensorProperties {
 	Size unitCellSize;
 	std::map<controls::draft::TestPatternModeEnum, int32_t> testPatternModes;
 	SensorDelays sensorDelays;
+	/*
+	 * Set for sensors whose colour filter array contains infrared
+	 * sensitive pixels. Such sensors require a software RGB-IR to Bayer
+	 * conversion before the image can be processed by the ISP.
+	 */
+	bool isRgbIr = false;
 };
 
 } /* namespace libcamera */

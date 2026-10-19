@@ -115,6 +115,26 @@ const ControlInfoMap::Map ipaAfControls{
 	{ &controls::LensPosition, ControlInfo(0.0f, 32.0f, 1.0f) }
 };
 
+/* Controls for RGB-IR sensors, with defaults taken from the tuning file. */
+ControlInfoMap::Map nirControls(const RPiController::NirConfig &config)
+{
+	const bool night = config.mode == RPiController::NirConfig::Mode::Night;
+	const int32_t mode = static_cast<int32_t>(config.mode);
+	ControlInfoMap::Map controls;
+
+	controls.emplace(&libcamera::controls::draft::NirMode,
+			 ControlInfo(libcamera::controls::draft::NirModeValues,
+				     ControlValue(mode)));
+	controls.emplace(&libcamera::controls::draft::NirRed,
+			 ControlInfo(0, 10, night ? config.nightRed : config.dayRed));
+	controls.emplace(&libcamera::controls::draft::NirGreen,
+			 ControlInfo(0, 10, night ? config.nightGreen : config.dayGreen));
+	controls.emplace(&libcamera::controls::draft::NirBlue,
+			 ControlInfo(0, 10, night ? config.nightBlue : config.dayBlue));
+
+	return controls;
+}
+
 /* Platform specific controls */
 const std::map<const std::string, ControlInfoMap::Map> platformControls {
 	{ "pisp", {
@@ -183,6 +203,21 @@ int32_t IpaBase::init(const IPASettings &settings, const InitParams &params, Ini
 	monoSensor_ = params.sensorInfo.cfaPattern == properties::draft::ColorFilterArrangementEnum::MONO;
 	if (!monoSensor_)
 		ctrlMap.merge(ControlInfoMap::Map(ipaColourControls));
+
+	isRgbIr_ = params.isRgbIr;
+	if (isRgbIr_)
+		ctrlMap.merge(nirControls(controller_.getNirConfig()));
+
+	const RPiController::NirConfig &nirConfig = controller_.getNirConfig();
+	result->nirConfig = {
+		static_cast<uint8_t>(nirConfig.mode),
+		nirConfig.dayRed,
+		nirConfig.dayGreen,
+		nirConfig.dayBlue,
+		nirConfig.nightRed,
+		nirConfig.nightGreen,
+		nirConfig.nightBlue,
+	};
 
 	result->controlInfo = ControlInfoMap(std::move(ctrlMap), controls::controls);
 
@@ -274,6 +309,9 @@ int32_t IpaBase::configure(const IPACameraSensorInfo &sensorInfo, const ConfigPa
 	/* Declare colour processing related controls for non-mono sensors. */
 	if (!monoSensor_)
 		ctrlMap.merge(ControlInfoMap::Map(ipaColourControls));
+
+	if (isRgbIr_)
+		ctrlMap.merge(nirControls(controller_.getNirConfig()));
 
 	/* Declare Autofocus controls, only if we have a controllable lens */
 	if (lensPresent_) {
@@ -1514,6 +1552,16 @@ void IpaBase::applyControls(const ControlList &controls)
 			}
 			break;
 		}
+
+		/*
+		 * NIR controls are consumed by the pipeline handler, which
+		 * performs the RGB-IR to Bayer conversion before the ISP.
+		 */
+		case controls::draft::NIR_MODE:
+		case controls::draft::NIR_RED:
+		case controls::draft::NIR_GREEN:
+		case controls::draft::NIR_BLUE:
+			break;
 
 		default:
 			LOG(IPARPI, Warning)

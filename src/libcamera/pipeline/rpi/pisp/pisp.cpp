@@ -37,6 +37,7 @@
 
 #include "../common/pipeline_base.h"
 #include "../common/rpi_stream.h"
+#include "rgbir.h"
 
 namespace libcamera {
 
@@ -801,6 +802,9 @@ public:
 
 	Config config_;
 
+	/* Native sensor bit depth, used by the RGB-IR conversion. */
+	unsigned int sensorBitDepth_ = 10;
+
 	bool adjustDeviceFormat(V4L2DeviceFormat &format) const;
 
 private:
@@ -1205,6 +1209,21 @@ PiSPCameraData::platformValidate(RPi::RPiCameraConfiguration *rpiConfig) const
 		return CameraConfiguration::Status::Invalid;
 	}
 
+	/*
+	 * The RGB-IR to Bayer conversion assumes the sensor's native BGGR
+	 * order. Flipping would change the Bayer order and is not supported
+	 * for this sensor in v1.
+	 */
+	if (sensor_->isRgbIr() &&
+	    !!(rpiConfig->combinedTransform_ & (Transform::HFlip |
+						Transform::VFlip |
+						Transform::Transpose))) {
+		LOG(RPI, Error)
+			<< "RGB-IR sensors do not support horizontal, vertical or"
+			<< " transposed transforms";
+		return CameraConfiguration::Status::Invalid;
+	}
+
 	if (!rawStreams.empty()) {
 		rawStreams[0].dev = cfe_[Cfe::Output0].dev();
 
@@ -1443,6 +1462,30 @@ int PiSPCameraData::platformConfigure(const RPi::RPiCameraConfiguration *rpiConf
 	V4L2VideoDevice *cfe = cfe_[Cfe::Output0].dev();
 	V4L2DeviceFormat cfeFormat;
 
+	sensorBitDepth_ =
+		MediaBusFormatInfo::info(rpiConfig->sensorFormat_.code).bitsPerPixel;
+
+	/*
+	 * RGB-IR sensors need the RGB-IR to Bayer conversion to run on linear
+	 * 16-bit samples, which requires uncompressed CFE output. The
+	 * conversion shares the CFE output buffer with the ISP input, so it
+	 * cannot run when the application requests a raw stream.
+	 */
+	const bool rgbIrProcessed = sensor_->isRgbIr() && rawStreams.empty();
+
+	if (rgbIrProcessed && (sensorBitDepth_ < 8 || sensorBitDepth_ > 16)) {
+		LOG(RPI, Error)
+			<< "Unsupported sensor bit depth " << sensorBitDepth_
+			<< " for RGB-IR conversion";
+		return -EINVAL;
+	}
+
+	if (sensor_->isRgbIr() && !rawStreams.empty()) {
+		LOG(RPI, Warning)
+			<< "Raw stream requested from an RGB-IR sensor, NIR"
+			<< " processing is disabled";
+	}
+
 	/*
 	 * See which streams are requested, and route the user
 	 * StreamConfiguration appropriately.
@@ -1454,14 +1497,25 @@ int PiSPCameraData::platformConfigure(const RPi::RPiCameraConfiguration *rpiConf
 		 */
 		V4L2SubdeviceFormat sensorFormatMod = rpiConfig->sensorFormat_;
 		sensorFormatMod.code = mbusCodeUnpacked16(sensorFormatMod.code);
+		BayerFormat::Packing packing = rgbIrProcessed
+					     ? BayerFormat::Packing::None
+					     : BayerFormat::Packing::PISP1;
 		cfeFormat = RPi::PipelineHandlerBase::toV4L2DeviceFormat(cfe,
 									 sensorFormatMod,
-									 BayerFormat::Packing::PISP1);
+									 packing);
 		computeOptimalStride(cfeFormat);
 	} else {
 		rawStreams[0].cfg->setStream(&cfe_[Cfe::Output0]);
 		cfe_[Cfe::Output0].setFlags(StreamFlag::External);
 		cfeFormat = rawStreams[0].format;
+	}
+
+	cfe_[Cfe::Output0].clearFlags(StreamFlag::NeedsRgbIrConvert);
+	if (rgbIrProcessed) {
+		cfe_[Cfe::Output0].setFlags(StreamFlag::NeedsRgbIrConvert);
+		LOG(RPI, Info)
+			<< "RGB-IR sensor: converting CFE output to standard Bayer"
+			<< " (uncompressed 16-bit)";
 	}
 
 	/*
@@ -1750,6 +1804,33 @@ void PiSPCameraData::cfeBufferDequeue(FrameBuffer *buffer)
 				do16BitEndianSwap(mem, width, height, stride);
 			else
 				do14bitUnpack(mem, width, height, stride);
+			dmabufSyncEnd(buffer->planes()[0].fd);
+		}
+
+		/* Convert the RGB-IR CFA to a standard Bayer pattern if needed. */
+		if (stream->getFlags() & StreamFlag::NeedsRgbIrConvert) {
+			const unsigned int stride = stream->configuration().stride;
+			const unsigned int width = stream->configuration().size.width;
+			const unsigned int height = stream->configuration().size.height;
+			const RPi::BufferObject &b = stream->getBuffer(index);
+
+			ASSERT(b.mapped);
+			void *mem = b.mapped->planes()[0].data();
+
+			RPi::NirParams params = getNirParams(buffer->metadata().sequence);
+
+			LOG(RPI, Debug)
+				<< "RGB-IR conversion: mode "
+				<< static_cast<unsigned int>(params.mode)
+				<< ", coefficients "
+				<< static_cast<unsigned int>(params.red) << "/"
+				<< static_cast<unsigned int>(params.green) << "/"
+				<< static_cast<unsigned int>(params.blue)
+				<< " for sequence " << buffer->metadata().sequence;
+
+			dmabufSyncStart(buffer->planes()[0].fd);
+			RPi::rgbIrToBayer(mem, width, height, stride, params,
+					  sensorBitDepth_);
 			dmabufSyncEnd(buffer->planes()[0].fd);
 		}
 
