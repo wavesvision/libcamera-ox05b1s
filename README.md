@@ -26,6 +26,15 @@ driver repository:
 That procedure installs the sensor driver, builds the overlay and configures
 the camera. Reboot after completing it.
 
+For autofocus, also install the DW9714 VCM driver and enable the `vcm` overlay
+parameter, following the instructions in:
+
+[wavesvision/kmod-dw9714](https://github.com/wavesvision/kmod-dw9714)
+
+Without the DW9714 driver, streaming and still capture work, but the lens is
+not exposed to libcamera and no `AfMode` or `LensPosition` controls are
+available.
+
 ## 1. Build and install libcamera
 
 Install the build dependencies:
@@ -144,6 +153,11 @@ cam -c 1 --capture=100 --metadata \
 ```
 
 For low light, use `af-auto-night.yaml` in the same way.
+
+Autofocus requires the DW9714 VCM driver and the `vcm` overlay parameter. See
+[wavesvision/kmod-dw9714](https://github.com/wavesvision/kmod-dw9714) for the
+installation procedure. Without it, the camera still streams but these AF
+scripts have no lens to control.
 
 The metadata prints `AfState`, `FocusFoM` and `LensPosition`. For a continuous
 stream, use `--capture` without a count and stop with `Ctrl-C`.

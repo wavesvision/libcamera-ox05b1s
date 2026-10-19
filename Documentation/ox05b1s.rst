@@ -22,7 +22,12 @@ line length. The driver changes required by this integration are:
 
 The DW9714 VCM driver is not part of the standard Raspberry Pi kernel image.
 The ``kmod-dw9714`` DKMS package provides the upstream driver, which matches the
-``dongwoon,dw9714`` compatible string used by the camera overlay.
+``dongwoon,dw9714`` compatible string used by the camera overlay. It is
+required for autofocus; without it the camera still streams, but libcamera has
+no lens entity and does not advertise the AF controls.
+
+Install it by following the instructions at
+https://github.com/wavesvision/kmod-dw9714.
 
 Kernel modules and overlay
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
