@@ -59,7 +59,8 @@ meson setup build . \
     -Dipas=rpi/pisp \
     -Dbuildtype=release \
     -Dgstreamer=enabled \
-    -Dpycamera=disabled
+    -Dpycamera=disabled \
+    -Dcam=enabled
 ninja -C build
 sudo meson install -C build
 ```
