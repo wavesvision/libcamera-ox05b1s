@@ -107,6 +107,14 @@ cam -c 1 --capture --display \
     --stream=width=2592,height=1944
 ```
 
+In case of "Failed to disable CRTCs and planes: Permission denied" you can use `--sdl` instead of `--display`
+
+```sh
+cam -c 1 --capture --sdl \
+    --script=utils/ox05b1s/nir-day.yaml \
+    --stream=width=1296,height=972
+```
+
 Press `Ctrl-C` to stop the preview.
 
 ### Over SSH with X11
