@@ -59,7 +59,8 @@ meson setup build . \
     -Dipas=rpi/pisp \
     -Dbuildtype=release \
     -Dgstreamer=enabled \
-    -Dpycamera=disabled
+    -Dpycamera=disabled \
+    -Dcam=enabled
 ninja -C build
 sudo meson install -C build
 ```
@@ -104,6 +105,14 @@ If a monitor is connected directly to the Raspberry Pi, use the DRM preview:
 cam -c 1 --capture --display \
     --script=utils/ox05b1s/nir-day.yaml \
     --stream=width=2592,height=1944
+```
+
+In case of "Failed to disable CRTCs and planes: Permission denied" you can use `--sdl` instead of `--display`
+
+```sh
+cam -c 1 --capture --sdl \
+    --script=utils/ox05b1s/nir-day.yaml \
+    --stream=width=1296,height=972
 ```
 
 Press `Ctrl-C` to stop the preview.
